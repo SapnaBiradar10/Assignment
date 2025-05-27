@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -15,44 +15,61 @@ function AuthForm() {
     password: "",
   });
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const registerUrl = "http://localhost:5000/register";
-  const loginUrl = "http://localhost:5000/login";
+  // Use environment variable for API URL if available
+  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const registerUrl = `${apiUrl}/register`;
+  const loginUrl = `${apiUrl}/login`;
 
-  // Regex
   const nameRegex = /^[A-Za-z ]{2,}$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const passwordRegex =
     /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?#&])[A-Za-z\d@$!%*?#&]{6,}$/;
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
+
   const inputHandler = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const lHandler = (e) => {
     setLogin({ ...login, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const loginHandler = async (e) => {
     e.preventDefault();
     if (!login.email || !login.password) {
-      alert("Please enter email and password ❗");
+      setError("Please enter email and password ❗");
       return;
     }
 
     if (!emailRegex.test(login.email)) {
-      alert("Please enter a valid email address ❌");
+      setError("Please enter a valid email address ❌");
       return;
     }
 
     try {
+      setLoading(true);
+      setError("");
       const res = await axios.post(loginUrl, login);
       localStorage.setItem("token", res.data.token);
       alert("Login successful ✅");
-      navigate("/pro");
+      setIsLoggedIn(true);
+      setLogin({ email: "", password: "" });
+      navigate("/pro"); // Redirect to /pro after login
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed ❌");
+      setError(err.response?.data?.message || "Login failed ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,68 +78,101 @@ function AuthForm() {
     const { name, email, password, confirmPassword } = form;
 
     if (!name || !email || !password || !confirmPassword) {
-      alert("Please fill all fields ❗");
+      setError("Please fill all fields ❗");
       return;
     }
 
     if (!nameRegex.test(name)) {
-      alert("Name must contain only letters/spaces and be at least 2 characters long ❌");
+      setError("Name must contain only letters/spaces and be at least 2 characters long ❌");
       return;
     }
 
     if (!emailRegex.test(email)) {
-      alert("Please enter a valid email address ❌");
+      setError("Please enter a valid email address ❌");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("Passwords do not match ❌");
+      setError("Passwords do not match ❌");
       return;
     }
 
     if (!passwordRegex.test(password)) {
-      alert("Password must be at least 6 characters and include:\n- 1 uppercase\n- 1 lowercase\n- 1 number\n- 1 special character");
+      setError("Password must be at least 6 characters and include:\n- 1 uppercase\n- 1 lowercase\n- 1 number\n- 1 special character");
       return;
     }
 
     try {
-      const res = await axios.post(registerUrl, { name, email, password });
+      setLoading(true);
+      setError("");
+      // Fixed: Changed 'name' to 'uname' to match backend model
+      const res = await axios.post(registerUrl, { uname: name, email, password });
       alert(res.data.message);
       setShowLogin(true);
       setForm({ name: "", email: "", password: "", confirmPassword: "" });
     } catch (err) {
-      alert(err.response?.data?.message || "Signup failed ❌");
+      setError(err.response?.data?.message || "Signup failed ❌");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setIsLoggedIn(false);
     alert("Logged out successfully ✅");
+    setShowLogin(true);
+    setLogin({ email: "", password: "" });
+    setForm({ name: "", email: "", password: "", confirmPassword: "" });
     navigate("/");
   };
 
   return (
-    <div className="container mt-5">
+    <div className="container mt-5 position-relative">
       {/* Home button */}
       <div className="mb-3">
-        <button className="btn btn-outline-info fw-bold" onClick={() => navigate("/")}>⬅ Home</button>
+        <button
+          className="btn btn-outline-info fw-bold"
+          onClick={() => navigate("/")}
+        >
+          ⬅ Home
+        </button>
       </div>
+
+      {/* Logout button at top-right if logged in */}
+      {isLoggedIn && (
+        <button
+          className="btn btn-danger fw-bold position-absolute top-0 end-0 m-3"
+          onClick={handleLogout}
+        >
+          Logout
+        </button>
+      )}
 
       {/* Toggle buttons */}
       <div className="d-flex justify-content-center mb-3">
         <button
           className={`btn me-2 ${showLogin ? "btn-primary" : "btn-outline-primary"}`}
           onClick={() => setShowLogin(true)}
+          disabled={loading}
         >
           Login
         </button>
         <button
           className={`btn ${!showLogin ? "btn-warning" : "btn-outline-warning"}`}
           onClick={() => setShowLogin(false)}
+          disabled={loading}
         >
           Signup
         </button>
       </div>
+
+      {/* Error message */}
+      {error && (
+        <div className="alert alert-danger text-center mb-3">
+          {error}
+        </div>
+      )}
 
       {/* Card */}
       <div className="card shadow p-4 mx-auto" style={{ maxWidth: "450px", borderRadius: "20px" }}>
@@ -140,6 +190,7 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Enter email"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="mb-3">
@@ -152,22 +203,14 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Enter password"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="d-flex justify-content-center">
-                <button type="submit" className="btn btn-outline-success w-50 fw-bold">Login</button>
+                <button type="submit" className="btn btn-outline-success w-50 fw-bold" disabled={loading}>
+                  {loading ? "Logging in..." : "Login"}
+                </button>
               </div>
-              {localStorage.getItem("token") && (
-                <div className="d-flex justify-content-center">
-                  <button
-                    type="button"
-                    className="btn btn-danger w-50 fw-bold mt-2"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
-              )}
             </form>
           </>
         ) : (
@@ -184,6 +227,7 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Enter your name"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="mb-3">
@@ -196,6 +240,7 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Enter your email"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="mb-3">
@@ -208,6 +253,7 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Create a password"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="mb-4">
@@ -220,10 +266,13 @@ function AuthForm() {
                   className="form-control"
                   placeholder="Re-enter your password"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="d-flex justify-content-center">
-                <button type="submit" className="btn btn-outline-primary w-50 fw-bold">Sign Up</button>
+                <button type="submit" className="btn btn-outline-primary w-50 fw-bold" disabled={loading}>
+                  {loading ? "Signing up..." : "Sign Up"}
+                </button>
               </div>
             </form>
           </>
