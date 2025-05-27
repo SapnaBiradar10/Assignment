@@ -35,8 +35,8 @@ function ProductHome() {
           style={{
             color: '#2c3e50',
             marginBottom: '1rem',
-            fontSize: '2.5rem',
-            textShadow: '1px 1px 3px #ccc',
+            fontSize: '2rem',
+            textShadow: '1px 1px 2px #ccc',
           }}
         >
           Welcome to the Inventory Management System

@@ -1,12 +1,12 @@
 
 import { Route, Routes, Link, useNavigate} from 'react-router-dom'
 import Home from './Routing/Home'
-import PageNotFound from './Routing/PageNotFound'
+// import PageNotFound from './Routing/PageNotFound'
 import Products from './Routing/Products'
 // import Users from './Routing/Users'
 // import Login from './ContextApi/Login'
 // import Signup from './ContextApi/Signup'
-import { useState } from 'react'
+// import { useState } from 'react'
 
 import Wishlist from './Routing/Wishlist'
 import ProtectedRoute from './Routing/ProtectedRoute'
@@ -15,11 +15,11 @@ import About from './Routing/About'
 
 
 function App() {
-  const[search,setSearch]=useState()
-  const navigate=useNavigate()
-  const inputHandler=()=>{
-    navigate(`/${search}`)
-  }
+  // const[search,setSearch]=useState()
+  // const navigate=useNavigate()
+  // const inputHandler=()=>{
+  //   navigate(`/${search}`)
+  // }
 
   return (
     <>
@@ -34,9 +34,7 @@ function App() {
               <li className="nav-item">
                 <Link to="/pro" className="nav-link text-white">Products</Link>
               </li>
-              {/* <li className="nav-item">
-                <Link to="/user" className="nav-link text-white">Users</Link>
-              </li> */}
+          
               <li className="nav-item">
                 <Link to="/wish" className="nav-link text-white">Wishlist</Link>
               </li>
@@ -58,7 +56,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route element={<ProtectedRoute></ProtectedRoute>}>
-          <Route path="*" element={<PageNotFound></PageNotFound>}></Route>
+        
         <Route path="/pro" element={<Products></Products>}></Route>
         <Route path="/wish" element={<Wishlist></Wishlist>}></Route>
         <Route path='/about' element={<About></About>}/>
