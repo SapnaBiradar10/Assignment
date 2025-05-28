@@ -21,7 +21,7 @@ function AuthForm() {
   const navigate = useNavigate();
 
   // Use environment variable for API URL if available
-  const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const apiUrl = import.meta.env.VITE_API_URL || "https://benevolent-choux-edb785.netlify.app/";
   const registerUrl = `${apiUrl}/register`;
   const loginUrl = `${apiUrl}/login`;
 
