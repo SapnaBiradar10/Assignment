@@ -1,44 +1,48 @@
 const express = require('express');
 const cors = require('cors');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env file
+dotenv.config();
+
 const app = express();
 
-// Route imports
-const userR = require('./Route/userRoute');
-const authRoutes = require('./Route/authRoutes');
-const productR = require('./Route/productRoute');
-const WishlistR = require('./Route/wishlistRoute');
-
 // Connect to MongoDB
-require("./config");
+require('./config'); // Assumes mongoose.connect() is inside config.js
 
 // Middleware
 app.use(cors({
-  origin: '*',  // Allow all origins (adjust in production)
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: 'https://benevolent-choux-edb785.netlify.app', // Must match your frontend domain
   credentials: true
 }));
 
 app.use(express.json());
 
-// Health check route
+// Routes
+const userRoutes = require('./Route/userRoute');
+const authRoutes = require('./Route/authRoutes');
+const productRoutes = require('./Route/productRoute');
+const wishlistRoutes = require('./Route/wishlistRoute');
+
+// Use modular routes
+app.use('/users', userRoutes);
+app.use('/auth', authRoutes);
+app.use('/products', productRoutes);
+app.use('/wishlist', wishlistRoutes);
+
+// Health check
 app.get('/health', (req, res) => {
-  res.status(200).send('Server is running');
+  res.send('✅ Server is running');
 });
 
-// Use Routes
-app.use("/", userR);
-app.use("/", authRoutes);
-app.use("/", productR);
-app.use("/", WishlistR);
-
-// Error handler
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('❌ Error:', err.stack);
+  res.status(500).json({ error: 'Internal Server Error' });
 });
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '43.243.81.251', () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server started on port ${PORT}`);
 });
