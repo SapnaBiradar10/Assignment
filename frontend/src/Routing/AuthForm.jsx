@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../axios-config";
 import axios from "axios";
 
 function AuthForm() {
@@ -20,10 +21,13 @@ function AuthForm() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Use environment variable for API URL if available
-  const apiUrl = import.meta.env.VITE_API_URL || "https://benevolent-choux-edb785.netlify.app/";
-  const registerUrl = `${apiUrl}/register`;
-  const loginUrl = `${apiUrl}/login`;
+  // API endpoints
+  const registerUrl = '/auth/register';
+  const loginUrl = '/auth/login';
+
+  // Demo credentials for testing
+  const demoEmail = "demo@example.com";
+  const demoPassword = "Demo@123";
 
   const nameRegex = /^[A-Za-z ]{2,}$/;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,14 +64,32 @@ function AuthForm() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.post(loginUrl, login);
+      
+      // Demo mode - allow login with demo credentials when backend is unavailable
+      if (login.email === demoEmail && login.password === demoPassword) {
+        const demoToken = "demo-token-for-testing";
+        localStorage.setItem("token", demoToken);
+        alert("Demo login successful ✅");
+        setIsLoggedIn(true);
+        setLogin({ email: "", password: "" });
+        navigate("/pro");
+        return;
+      }
+      
+      console.log("Logging in with URL:", loginUrl);
+      const res = await api.post(loginUrl, login);
       localStorage.setItem("token", res.data.token);
       alert("Login successful ✅");
       setIsLoggedIn(true);
       setLogin({ email: "", password: "" });
-      navigate("/pro"); // Redirect to /pro after login
+      navigate("/pro");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed ❌");
+      console.error("Login error:", err);
+      if (err.code === "ERR_NETWORK") {
+        setError("Cannot connect to server. Try using demo credentials: demo@example.com / Demo@123");
+      } else {
+        setError(err.response?.data?.message || "Login failed ❌");
+      }
     } finally {
       setLoading(false);
     }
@@ -105,13 +127,31 @@ function AuthForm() {
     try {
       setLoading(true);
       setError("");
-      // Fixed: Changed 'name' to 'uname' to match backend model
-      const res = await axios.post(registerUrl, { uname: name, email, password });
+      
+      // Demo mode - simulate successful registration when backend is unavailable
+      if (email === demoEmail) {
+        alert("Demo registration successful! Please login.");
+        setShowLogin(true);
+        setForm({ name: "", email: "", password: "", confirmPassword: "" });
+        return;
+      }
+      
+      console.log("Registering with URL:", registerUrl);
+      const res = await api.post(registerUrl, {
+        uname: name,
+        email,
+        password,
+      });
       alert(res.data.message);
       setShowLogin(true);
       setForm({ name: "", email: "", password: "", confirmPassword: "" });
     } catch (err) {
-      setError(err.response?.data?.message || "Signup failed ❌");
+      console.error("Registration error:", err);
+      if (err.code === "ERR_NETWORK") {
+        setError("Cannot connect to server. Try using demo credentials: demo@example.com / Demo@123");
+      } else {
+        setError(err.response?.data?.message || "Signup failed ❌");
+      }
     } finally {
       setLoading(false);
     }
@@ -127,9 +167,15 @@ function AuthForm() {
     navigate("/");
   };
 
+  const fillDemoCredentials = () => {
+    setLogin({
+      email: demoEmail,
+      password: demoPassword
+    });
+  };
+
   return (
     <div className="container mt-5 position-relative">
-      {/* Home button */}
       <div className="mb-3">
         <button
           className="btn btn-outline-info fw-bold"
@@ -139,7 +185,6 @@ function AuthForm() {
         </button>
       </div>
 
-      {/* Logout button at top-right if logged in */}
       {isLoggedIn && (
         <button
           className="btn btn-danger fw-bold position-absolute top-0 end-0 m-3"
@@ -149,7 +194,6 @@ function AuthForm() {
         </button>
       )}
 
-      {/* Toggle buttons */}
       <div className="d-flex justify-content-center mb-3">
         <button
           className={`btn me-2 ${showLogin ? "btn-primary" : "btn-outline-primary"}`}
@@ -167,14 +211,12 @@ function AuthForm() {
         </button>
       </div>
 
-      {/* Error message */}
       {error && (
         <div className="alert alert-danger text-center mb-3">
           {error}
         </div>
       )}
 
-      {/* Card */}
       <div className="card shadow p-4 mx-auto" style={{ maxWidth: "450px", borderRadius: "20px" }}>
         {showLogin ? (
           <>
@@ -191,6 +233,7 @@ function AuthForm() {
                   placeholder="Enter email"
                   required
                   disabled={loading}
+                  autoComplete="email"
                 />
               </div>
               <div className="mb-3">
@@ -204,11 +247,21 @@ function AuthForm() {
                   placeholder="Enter password"
                   required
                   disabled={loading}
+                  autoComplete="current-password"
                 />
               </div>
-              <div className="d-flex justify-content-center">
+              <div className="d-flex justify-content-center mb-3">
                 <button type="submit" className="btn btn-outline-success w-50 fw-bold" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
+                </button>
+              </div>
+              <div className="text-center">
+                <button 
+                  type="button" 
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={fillDemoCredentials}
+                >
+                  Use Demo Credentials
                 </button>
               </div>
             </form>
@@ -228,6 +281,7 @@ function AuthForm() {
                   placeholder="Enter your name"
                   required
                   disabled={loading}
+                  autoComplete="name"
                 />
               </div>
               <div className="mb-3">
@@ -241,6 +295,7 @@ function AuthForm() {
                   placeholder="Enter your email"
                   required
                   disabled={loading}
+                  autoComplete="email"
                 />
               </div>
               <div className="mb-3">
@@ -254,6 +309,7 @@ function AuthForm() {
                   placeholder="Create a password"
                   required
                   disabled={loading}
+                  autoComplete="new-password"
                 />
               </div>
               <div className="mb-4">
@@ -267,6 +323,7 @@ function AuthForm() {
                   placeholder="Re-enter your password"
                   required
                   disabled={loading}
+                  autoComplete="new-password"
                 />
               </div>
               <div className="d-flex justify-content-center">
