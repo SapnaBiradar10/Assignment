@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, Navigate } from "react-router-dom";
-import axios from 'axios';
+import api from '../axios-config';
 
 function ProtectedRoute() {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
@@ -15,31 +15,36 @@ function ProtectedRoute() {
       return;
     }
     
-    // Optional: Verify token validity with backend
-    // This helps ensure the token hasn't expired or been invalidated
-    /*
+    // Special handling for demo token
+    if (token === "demo-token-for-testing") {
+      setIsAuthenticated(true);
+      setLoading(false);
+      return;
+    }
+    
+    // Verify token validity with backend
     const verifyToken = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-        await axios.get(`${apiUrl}/verify-token`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        console.log("Verifying token");
+        await api.get("/auth/verify-token");
         setIsAuthenticated(true);
       } catch (error) {
         console.error("Token verification failed:", error);
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
+        // If it's a network error, still allow access with the token
+        // This helps when backend is down but user has a token
+        if (error.code === "ERR_NETWORK") {
+          console.log("Network error, but allowing access with token");
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem("token");
+          setIsAuthenticated(false);
+        }
       } finally {
         setLoading(false);
       }
     };
     
     verifyToken();
-    */
-    
-    // For now, just check if token exists
-    setIsAuthenticated(!!token);
-    setLoading(false);
   }, []);
 
   if (loading) {
